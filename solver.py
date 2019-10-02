@@ -21,6 +21,8 @@ from utils import cc
 from utils import calculate_gradients_penalty
 from utils import gen_noise
 
+device_name = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 class Solver(object):
     def __init__(self, hps, data_loader, log_dir='./log/'):
         self.hps = hps
@@ -73,7 +75,7 @@ class Solver(object):
     def load_model(self, model_path, enc_only=True):
         print('load model from {}'.format(model_path))
         with open(model_path, 'rb') as f_in:
-            all_model = torch.load(f_in, map_location=torch.device('cpu'))
+            all_model = torch.load(f_in, map_location=torch.device(device_name))
             self.Encoder.load_state_dict(all_model['encoder'])
             self.Decoder.load_state_dict(all_model['decoder'])
             self.Generator.load_state_dict(all_model['generator'])

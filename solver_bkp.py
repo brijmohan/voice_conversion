@@ -118,6 +118,9 @@ class Solver(object):
         x_tilde = self.Decoder(enc, c)
         return x_tilde
 
+<<<<<<< HEAD
+    def patch_step(self, x, x_tilde, is_dis=True):
+=======
     def latent_discriminate_step(self, enc_i_t, enc_i_tk, enc_i_prime, enc_j, is_dis=True):
         same_pair = torch.cat([enc_i_t, enc_i_tk], dim=1)
         diff_pair = torch.cat([enc_i_prime, enc_j], dim=1)
@@ -134,6 +137,7 @@ class Solver(object):
 
     def patch_discriminate_step(self, x, x_tilde, cal_gp=True):
         # w-distance
+>>>>>>> 4b2f701ba47b7c326213842f90ded5a8f429ec15
         D_real, real_logits = self.PatchDiscriminator(x, classify=True)
         D_fake, fake_logits = self.PatchDiscriminator(x_tilde, classify=True)
         if is_dis:
@@ -273,6 +277,63 @@ class Solver(object):
                 print(log % slot_value)
                 if iteration % 100 == 0:
                     for tag, value in info.items():
+<<<<<<< HEAD
+                        self.logger.scalar_summary(tag, value, iteration + 1)
+                if iteration % 1000 == 0 or iteration + 1 == hps.patch_iters:
+                    self.save_model(model_path, iteration + hps.iters)
+        elif mode == 'train':
+            for iteration in range(hps.iters):
+                # calculate current alpha
+                if iteration < hps.lat_sched_iters:
+                    current_alpha = hps.alpha_enc * (iteration / hps.lat_sched_iters)
+                else:
+                    current_alpha = hps.alpha_enc
+                #==================train D==================#
+                for step in range(hps.n_latent_steps):
+                    data = next(self.data_loader)
+                    c, x = self.permute_data(data)
+                    # encode
+                    enc = self.encode_step(x)
+                    # classify speaker
+                    logits = self.clf_step(enc)
+                    loss_clf = self.cal_loss(logits, c)
+                    loss = hps.alpha_dis * loss_clf
+                    # update 
+                    reset_grad([self.SpeakerClassifier])
+                    loss.backward()
+                    grad_clip([self.SpeakerClassifier], self.hps.max_grad_norm)
+                    self.clf_opt.step()
+                    # calculate acc
+                    acc = cal_acc(logits, c)
+                    info = {
+                        f'{flag}/D_loss_clf': loss_clf.item(),
+                        f'{flag}/D_acc': acc,
+                    }
+                    slot_value = (step, iteration + 1, hps.iters) + tuple([value for value in info.values()])
+                    log = 'D-%d:[%06d/%06d], loss_clf=%.2f, acc=%.2f'
+                    print(log % slot_value)
+                    if iteration % 100 == 0:
+                        for tag, value in info.items():
+                            self.logger.scalar_summary(tag, value, iteration + 1)
+                #==================train G==================#
+                data = next(self.data_loader)
+                c, x = self.permute_data(data)
+                # encode
+                enc = self.encode_step(x)
+                # decode
+                x_tilde = self.decode_step(enc, c)
+                loss_rec = torch.mean(torch.abs(x_tilde - x))
+                # classify speaker
+                logits = self.clf_step(enc)
+                acc = cal_acc(logits, c)
+                loss_clf = self.cal_loss(logits, c)
+                # maximize classification loss
+                loss = loss_rec - current_alpha * loss_clf
+                reset_grad([self.Encoder, self.Decoder])
+                loss.backward()
+                grad_clip([self.Encoder, self.Decoder], self.hps.max_grad_norm)
+                self.ae_opt.step()
+=======
                         self.logger.scalar_summary(tag, value, iteration)
             #===================== Train G =====================#
             data = next(self.data_loader)
@@ -312,6 +373,7 @@ class Solver(object):
                 patch_loss.backward()
                 grad_clip([self.Decoder], self.hps.max_grad_norm)
                 self.decoder_opt.step()
+>>>>>>> 4b2f701ba47b7c326213842f90ded5a8f429ec15
                 info = {
                     f'{flag}/loss_rec': loss_rec.item(),
                     f'{flag}/G_loss_clf': loss_clf.item(),
